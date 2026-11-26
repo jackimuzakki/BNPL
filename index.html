@@ -173,19 +173,21 @@ function fillSA(){$('#fs').innerHTML=Object.keys(S).filter(n=>S[n][0]===$('#fp')
 fillSA();$('#fp').onchange=fillSA;
 $('#fd').value=new Date().toLocaleDateString('sv-SE');
 $('#fa').oninput=e=>{const d=e.target.value.replace(/\D/g,'');e.target.value=d?ID.format(+d):''};
-$('#f').onsubmit=async e=>{e.preventDefault();
+/* Simpan dan hapus langsung tampil di layar, sinkron ke Google Sheet berjalan di latar belakang */
+let pending=0,q=Promise.resolve();
+function sync(task,fail){pending++;
+  q=q.then(task).catch(()=>fail&&fail()).then(()=>{pending--;if(!pending)pull()})}
+$('#f').onsubmit=e=>{e.preventDefault();
   const amt=+$('#fa').value.replace(/\D/g,'');if(!amt){toast('Isi nominal penjualan dulu');return}
   const r={id:'u'+Date.now(),ts:new Date().toISOString(),d:$('#fd').value,sa:$('#fs').value,amt};
-  if(SHEET_URL){const b=$('#f button');b.disabled=true;
-    try{await post({action:'add',partner:S[r.sa][0],tanggal:r.d,sa:r.sa,sales:amt});await pull()}
-    catch(err){toast('Gagal menyimpan, coba lagi');b.disabled=false;return}
-    b.disabled=false}
-  else{rows.push(r);save()}
+  rows.push(r);
+  if(SHEET_URL)sync(()=>post({action:'add',partner:S[r.sa][0],tanggal:r.d,sa:r.sa,sales:amt}),()=>toast('Gagal menyimpan, coba lagi'));
+  else save();
   month=r.d.slice(0,7);$('#month').value=month;$('#fa').value='';render();toast('Penjualan tersimpan')};
-$('#tb').onclick=async e=>{const id=e.target.dataset.id;if(!id||!confirm('Hapus input ini?'))return;
-  if(SHEET_URL){try{await post({action:'del',id});await pull()}catch(err){toast('Gagal menghapus, coba lagi');return}}
-  else{rows=rows.filter(r=>r.id!==id);save();render()}
-  toast('Input dihapus')};
+$('#tb').onclick=e=>{const id=e.target.dataset.id;if(!id||!confirm('Hapus input ini?'))return;
+  if(SHEET_URL&&(pending||id[0]==='u')){toast('Sedang menyinkronkan, coba lagi sebentar');return}
+  rows=rows.filter(r=>r.id!==id);render();toast('Input dihapus');
+  if(SHEET_URL)sync(()=>post({action:'del',id}),()=>toast('Gagal menghapus, coba lagi'));else save()};
 $('#csv').onclick=()=>{const L=['Timestamp,Partner,Tanggal,SA,Sales Today',...rows.map(r=>[r.ts,S[r.sa][0],r.d,r.sa,r.amt].join(','))];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([L.join('\n')],{type:'text/csv'}));a.download='daily-sales.csv';a.click()};
 
