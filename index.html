@@ -86,7 +86,6 @@ svg{width:100%;height:auto;display:block}
   <nav role="tablist">
     <button role="tab" data-t="overview" aria-selected="true">Overview</button>
     <button role="tab" data-t="promotor" aria-selected="false">Performa promotor</button>
-    <button role="tab" data-t="tren" aria-selected="false">Tren bulanan</button>
     <button role="tab" data-t="input" aria-selected="false">Input harian</button>
   </nav>
 </div></header>
@@ -94,7 +93,6 @@ svg{width:100%;height:auto;display:block}
 <main class="wrap">
   <section id="overview" class="on"></section>
   <section id="promotor"></section>
-  <section id="tren"></section>
   <section id="input">
     <div class="card">
       <h2>Input penjualan hari ini</h2>
@@ -120,7 +118,6 @@ const SHEET_URL='https://script.google.com/macros/s/AKfycbzP10pDfToTz-FidLdjbFdT
 
 const P={'Home Credit Indonesia':'#D9485B','Indodana':'#2F6FDE','Akulaku':'#E8821A','Kredivo':'#7B4FD1'};
 const S={Dessy:['Home Credit Indonesia',2e8],Fahmi:['Home Credit Indonesia',2e8],Agung:['Akulaku',1.25e8],Feri:['Akulaku',1.25e8],Rozi:['Indodana',2.5e8],Cinda:['Indodana',2e8],Noval:['Kredivo',2.5e8],Ajeng:['Kredivo',1.5e8]};
-const HIST={'Home Credit Indonesia':[233.3936,349.7915,288.4885,378.064,350.1405,247.855,272.083,171.9395,330.0725],Indodana:[232.24585,302.972249,192.799371,295.952482,246.936,468.877252,387.9835,290.7005,417.9275],Akulaku:[190.4855,329.3005,193.878,212.579,209.617013,151.471519,103.712776,152.779058,257.81362],Kredivo:[439.806504,575.625923,204.80367,283.729369,232.020049,270.645265,305.97521,134.8395,316.771014]};
 const BLN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const SEED=[[4,'Feri',26166448],[6,'Feri',19161544],[6,'Cinda',9399000],[6,'Agung',80059310],[6,'Noval',48169900],[7,'Ajeng',93827485],[7,'Rozi',59998000],[6,'Fahmi',14909500],[1,'Fahmi',16976500],[7,'Noval',34389000],[7,'Rozi',15999000],[8,'Dessy',10208000],[9,'Noval',15000000],[9,'Noval',26791000],[9,'Fahmi',24290500],[10,'Rozi',29499000],[11,'Rozi',27499000],[11,'Rozi',19499000],[11,'Ajeng',12361390],[12,'Noval',9871000],[13,'Noval',17967000],[13,'Dessy',27408000],[13,'Fahmi',29999000],[11,'Fahmi',25398000],[14,'Cinda',14409000],[14,'Ajeng',25158090],[14,'Cinda',23289000],[14,'Rozi',47957000],[15,'Rozi',24958000],[15,'Feri',26798928],[15,'Dessy',8908500],[15,'Agung',34185008],[15,'Rozi',28499000],[16,'Cinda',26328000],[16,'Dessy',38606000],[17,'Ajeng',17978000],[18,'Rozi',75997000],[19,'Rozi',27499000],[19,'Noval',23178000],[19,'Noval',21719000],[21,'Cinda',29999000],[21,'Rozi',21499000],[24,'Ajeng',26642790],[25,'Noval',15939000]];
 
@@ -160,17 +157,6 @@ function promotor(){const a=agg(month),list=Object.entries(S).map(([n,[p,t]])=>(
   const sc=Math.max(1,...list.map(x=>x.pct));
   $('#promotor').innerHTML='<div class="cards">'+list.map(x=>{const gap=x.t-x.v;return `<div class="card sc" style="--c:${P[x.p]}"><div class="head"><b>${x.n}</b><span class="lbl">${x.p}</span></div><div class="big">${pc(x.pct)}</div><div class="rail" style="margin-top:10px"><i style="width:${x.pct/sc*100}%"></i><b style="left:${100/sc}%"></b></div><p>${rp(x.v)} dari ${rp(x.t)}</p><p class="${gap<=0?'ok':''}">${gap>0?'Sisa target '+rp(gap):'Target tercapai, lebih '+rp(-gap)}</p></div>`}).join('')+'</div><p class="lbl" style="margin-top:12px">Garis kuning menandai 100% target.</p>'}
 
-function tren(){const labs=['Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov*'],live=agg('2026-11').partner;
-  const ser=Object.keys(P).map(p=>({p,v:[...HIST[p],live[p]/1e6]})),max=Math.max(...ser.flatMap(s=>s.v))*1.1;
-  const W=640,H=270,pl=44,pr=10,pt=10,pb=28,x=i=>pl+i*(W-pl-pr)/(labs.length-1),y=v=>pt+(H-pt-pb)*(1-v/max);
-  let g='';for(let i=0;i<=4;i++){const v=max*i/4;g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--mute)">${Math.round(v)}</text>`}
-  labs.forEach((l,i)=>g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mute)">${l}</text>`);
-  const n=labs.length;ser.forEach(s=>{const pts=s.v.slice(0,n-1).map((v,i)=>x(i)+','+y(v)).join(' ');
-    g+=`<polyline points="${pts}" fill="none" stroke="${P[s.p]}" stroke-width="2.5" stroke-linejoin="round"/><line x1="${x(n-2)}" y1="${y(s.v[n-2])}" x2="${x(n-1)}" y2="${y(s.v[n-1])}" stroke="${P[s.p]}" stroke-width="2.5" stroke-dasharray="5 4"/>`;
-    s.v.forEach((v,i)=>g+=`<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${P[s.p]}"><title>${s.p} ${labs[i]}: Rp ${v.toFixed(1)} jt</title></circle>`)});
-  const leg=ser.map(s=>`<span><span class="dot" style="--c:${P[s.p]}"></span> ${s.p}</span>`).join('');
-  $('#tren').innerHTML=`<div class="card"><h2>Penjualan per partner (juta rupiah)</h2><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik tren penjualan bulanan per partner">${g}</svg><div class="leg">${leg}</div><p class="lbl" style="margin-top:10px">*November masih berjalan, dihitung dari input harian.</p></div>`}
-
 function table(){const r=[...rows].sort((a,b)=>b.d.localeCompare(a.d)||String(b.ts).localeCompare(String(a.ts))).slice(0,20);
   $('#tb').innerHTML=r.map(x=>`<tr><td>${x.d.split('-').reverse().join('/')}</td><td>${S[x.sa][0]}</td><td>${x.sa}</td><td class="r">${rp(x.amt)}</td><td class="r"><button class="x" data-id="${x.id}" aria-label="Hapus input ${x.sa}">Hapus</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada input. Isi form di atas untuk mulai.</td></tr>'}
 
@@ -178,7 +164,7 @@ async function pull(){if(!SHEET_URL)return;
   try{const r=await fetch(SHEET_URL+'?t='+Date.now()),j=await r.json();rows=j.rows.filter(x=>S[x.sa]);render()}
   catch(e){toast('Gagal memuat data dari Google Sheet')}}
 async function post(o){const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify(o)}),j=await r.json();if(!j.ok)throw new Error(j.error)}
-function render(){overview();promotor();tren();table()}
+function render(){overview();promotor();table()}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2200)}
 
 /* form */
